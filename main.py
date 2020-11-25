@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from cv2 import cv2
 from selenium import webdriver
 from selenium.webdriver.support import expected_conditions as EC
@@ -17,15 +19,36 @@ from io import open
 
 options = Options()
 options.add_argument("--headless")
-PATH = "C:\Program Files (x86)\chromedriver.exe"
+PATH = "D:\\RCPelisco\\Downloads\\chromedriver_win32\\chromedriver.exe"
 browser = webdriver.Chrome(PATH, chrome_options=options)
 
-browser.get("https://namu.wiki/w/%EB%B6%84%EB%A5%98:%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9D%98%20%EC%A7%81%EC%97%85%EB%B3%84%20%EC%9D%B8%EB%AC%BC")
-
-root = browser.find_elements_by_css_selector(".cl a")
-leaf_selector = ".cl:nth-child(3) .c ul li a"
+content_selector = ".cl:nth-child(3) .c ul li a"
 leaf_next_selector = ".cl:nth-child(3) a:nth-child(2)"
 image_selector = ".w span span img:nth-child(2)"
+
+history = []
+class Tree:
+    def __init__(self, node):
+        self.node = node
+        self.children = []
+
+    def addChild(self, tree):
+        self.children.append(tree)
+
+def get_root_json():
+    with open('json/root.json', 'r', encoding="utf8") as json_file:
+        return json.loads(json_file.read())
+
+def redirect(directory):
+    # for item in history:
+    #     if item['url'] == directory['url']: return
+    browser.get(directory['url'])
+    history.append(directory)
+
+def save_json(path, data):
+    with open(u'json/{}'.format(path), 'w', encoding="utf8") as json_file:
+        data = json.dumps(data, indent = 2, ensure_ascii = False)
+        json_file.write(unicode(data))
 
 def is_face(link):
     hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -86,85 +109,70 @@ def get_image(link):
         return ''
 
 def get_href(l):
-    for i, link in enumerate(l):
-        l[i] = {"title":link.text , "url": link.get_attribute("href").strip()}
-    return l
+    nl = []
+    for link in l:
+        if link.text.strip() == 'Prev' or link.text.strip() == 'Next' or link.get_attribute("href") is None: continue
+        nl.append({ "title": link.text , "url": link.get_attribute("href").strip() })
+    return nl
 
-root = get_href(root)
 
-def get_leaf_href():
-    leaf_urls = browser.find_elements_by_css_selector(leaf_selector)
-    leaf_urls = get_href(leaf_urls)
+def get_content_href(urls = None):
+    if urls is None: urls = []
+    containers = browser.find_elements_by_css_selector('.cl')
+    content_urls = []
+    for container in containers:
+        header = container.find_element_by_css_selector('.wiki-heading')
+        if(header.text.find(u'분류에 속하는 문서') == -1): continue
+        content_urls = container.find_elements_by_css_selector('a')
+        break
+
+    content_urls = get_href(content_urls)
+    urls += content_urls
+
     try:
-        has_next = True
-        while(has_next):
-            try:
-                leaf_next = browser.find_element_by_css_selector(leaf_next_selector)
-                browser.get(leaf_next.get_attribute('href'))
-                leaf_urls += get_href(browser.find_elements_by_css_selector(leaf_selector))
-            except InvalidArgumentException:
-                has_next = False
+        leaf_next = browser.find_element_by_css_selector(leaf_next_selector)
+        browser.get(leaf_next.get_attribute('href'))
+    except (InvalidArgumentException, NoSuchElementException):
+        return urls
 
-    except NoSuchElementException:
-        leaf_urls = browser.find_elements_by_css_selector(leaf_selector)
-        return get_href(leaf_urls)
-    return leaf_urls
+    return get_content_href(urls)
 
-def get_leaf():
-    leaf_links = get_leaf_href()
-    leaf_docs = []
-    for leaf_link in leaf_links:
-        index = leaf_link['title'].find("(") if leaf_link['title'].find("(") > 0 else len(leaf_link['title'])
-        if(len(leaf_link['title'][:index].encode("utf-8")) >= 12): continue
-        browser.get(leaf_link['url'])
-        content = get_content(leaf_link)
-        if(content['image'] is None): continue
-        leaf_docs.append(content)
-
-    return leaf_docs
-
-def get_content(link):
-    print(link['url'])
-    if(not link['title'].find("/") == -1): return {"image": None}
-    browser.get(link['url'])
+def get_item(link):
+    redirect(link)
     image = get_image(link['url'])
     
     return {
         "title": link['title'],
         "image": image
     }
-link_tree = []
-for item in root:
-    browser.get(item['url'])
-    sub_links_selector = browser.find_elements_by_css_selector(".cl:nth-child(2) .c a")
-    sub_links = get_href(sub_links_selector)
-    
-    leaf = get_leaf()
-    
-    link_sub_tree = []
-    for sub_link in sub_links:
-        browser.get(sub_link['url'])
-        sub_leaf = get_leaf()
-        sub_sub_links = browser.find_elements_by_css_selector(".cl:nth-child(2) a")
-        sub_sub_links = get_href(sub_sub_links)
-        
-        link_sub_sub_tree = []
-        for sub_sub_link in sub_sub_links:
-            content = get_content(sub_sub_link)
-            link_sub_sub_tree.append(content)
-        
-        link_sub_tree.append({
-            "title": sub_link['title'],
-            "leaf_docs": sub_leaf,
-            "sub": link_sub_sub_tree
-        })
 
-    link_tree.append({
-        "title": item['title'],
-        "leaf_docs": leaf,
-        "sub": link_sub_tree
-    })
-    with open(u"{}.json".format(sub_link['title']), 'w', encoding="utf8") as json_file:
-        data = json.dumps(link_sub_tree, indent = 2, ensure_ascii = False)
-        json_file.write(unicode(data))
-    
+def get_content():
+    content_links = get_content_href([])
+    content_docs = []
+    for content_link in content_links:
+        index = content_link['title'].find("(") if content_link['title'].find("(") > 0 else len(content_link['title'])
+        if(len(content_link['title'][:index].encode("utf-8")) >= 12 
+            and not content_link['title'].find("/") == -1): continue
+        redirect(content_link)
+        item = get_item(content_link)
+        content_docs.append(item)
+
+    return content_docs
+
+def get_directories():
+    pass
+
+def crawl(directory, tree, depth):
+    if depth > 0:
+        redirect(directory)
+        content = get_content()
+        
+        directories = browser.find_elements_by_css_selector(".cl:nth-child(2) .c a")
+        directories = get_href(directories)
+        for directory in directories:
+            child = crawl(directory, Tree(content), depth-1)
+            tree.addChild(child)
+    return tree
+    # save_json(u'{}.json'.format(directory['title']), { 'title': directory['title'], 'sub': content })
+data = crawl(get_root_json()[0], Tree({'title': get_root_json()[0]['title']}), 3)
+save_json('test.json', data)
