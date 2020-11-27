@@ -23,7 +23,7 @@ from io import open
 
 options = Options()
 options.add_argument("--headless")
-PATH = "C:\Program Files (x86)\chromedriver.exe"
+PATH = "D:\\RCPelisco\\Downloads\\chromedriver_win32\\chromedriver.exe"
 browser = webdriver.Chrome(PATH, chrome_options=options)
 
 content_selector = ".cl:nth-child(3) .c ul li a"
@@ -34,10 +34,10 @@ history = []
 class Tree:
     def __init__(self, node):
         self.node = node
-        self.sub = []
+        self.children = []
 
     def addChild(self, tree):
-        self.sub.append(tree)
+        self.children.append(tree)
 
 def get_root_json():
     with open('json/root.json', 'r', encoding="utf8") as json_file:
