@@ -23,7 +23,7 @@ from io import open
 
 options = Options()
 options.add_argument("--headless")
-PATH = "D:\\RCPelisco\\Downloads\\chromedriver_win32\\chromedriver.exe"
+PATH = "C:\\Program Files (x86)\\chromedriver.exe"
 browser = webdriver.Chrome(PATH, chrome_options=options)
 
 content_selector = ".cl:nth-child(3) .c ul li a"
@@ -181,18 +181,18 @@ def crawl(directory, tree, depth):
     if depth > 0:
         if(is_done(directory)): return tree
         redirect(directory)
-        content = get_content()
-        redirect(directory)
+        # content = get_content()
         directories = browser.find_elements_by_css_selector(".cl:nth-child(2) a")
         directories = get_href(directories)
-        print("dir", len(directories))
         for d in directories:
-            child = crawl(d, Tree({'title': d['title'], 'sub': content}), depth-1)
+            print("dir",d)
+            redirect(d)
+            child = crawl(d, Tree({'title': d['title'], 'sub': get_content()}), depth-1)
             tree.addChild(child)
+        redirect(directory)
+        content = get_content()
+        tree.addChild(content)
     return tree
-
-    # save_json(u'{}.json'.format(directory['title']), )
-
 
 # for profession in professions:
 data = crawl(get_root_json()[0], Tree({'title': get_root_json()[0]['title']}), 2)
