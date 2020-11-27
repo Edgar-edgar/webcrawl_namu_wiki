@@ -1,0 +1,24 @@
+# a.json -> 
+[
+  { title: d, 
+    sub: [
+      { title: p3, image:p3_image.jpg }
+    ]
+  },
+  { title: b, 
+    sub: [
+      { title: c, 
+        sub: [
+          { title: p1_non_person_image }, 
+          { title: p2, image: p2_image.png }
+        ]
+      }
+    ]
+  }
+]
+
+e.json -> [{title:c, sub:[{title:p1_non_person_image}, {title:p2, image:p2_image.png}]},
+           {title:f, sub:[{title:p4_no_image},
+                          {title:g, sub:[{title:p5, image:p5_image.bmp}]}]},
+           {title:p7, image:p7_image.jpeg},
+           {title:h_with_long_long_long_title, sub:[{title:p8, image:p8_image.png}]}]
