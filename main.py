@@ -34,10 +34,10 @@ history = []
 class Tree:
     def __init__(self, node):
         self.node = node
-        self.children = []
+        self.sub = []
 
     def addChild(self, tree):
-        self.children.append(tree)
+        self.sub.append(tree)
 
 def get_root_json():
     with open('json/root.json', 'r', encoding="utf8") as json_file:
@@ -181,11 +181,9 @@ def crawl(directory, tree, depth):
     if depth > 0:
         if(is_done(directory)): return tree
         redirect(directory)
-        # content = get_content()
         directories = browser.find_elements_by_css_selector(".cl:nth-child(2) a")
         directories = get_href(directories)
         for d in directories:
-            print("dir",d)
             redirect(d)
             child = crawl(d, Tree({'title': d['title'], 'sub': get_content()}), depth-1)
             tree.addChild(child)
@@ -194,7 +192,6 @@ def crawl(directory, tree, depth):
         tree.addChild(content)
     return tree
 
-# for profession in professions:
-data = crawl(get_root_json()[0], Tree({'title': get_root_json()[0]['title']}), 2)
-
-save_json('test.json', dump(data))
+for i in range(3,30)
+    data = crawl(get_root_json()[i], Tree({'title': get_root_json()[i]['title']}), 2)
+    save_json(u'{}.json'.format( get_root_json()[i]['title']), dump(data))
