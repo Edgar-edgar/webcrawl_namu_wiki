@@ -192,6 +192,6 @@ def crawl(directory, tree, depth):
         tree.addChild(content)
     return tree
 
-for i in range(3,30)
+for i in range(3,30):
     data = crawl(get_root_json()[i], Tree({'title': get_root_json()[i]['title']}), 2)
     save_json(u'{}.json'.format( get_root_json()[i]['title']), dump(data))
