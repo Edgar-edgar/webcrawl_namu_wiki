@@ -4,3 +4,4 @@ venv
 debug.log
 chromedriver.exe
 *.pyc
+*.rar
