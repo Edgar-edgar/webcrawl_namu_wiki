@@ -2,3 +2,5 @@ webcrawl_env
 venv
 .vscode
 debug.log
+chromedriver.exe
+*.pyc
