@@ -16,14 +16,16 @@ import numpy as np
 import urllib2
 import json
 import random
-import time
 from PyJSONSerialization import dump
-
+import os
+from dotenv import load_dotenv
 from io import open
+
+load_dotenv()
 
 options = Options()
 options.add_argument("--headless")
-PATH = "C:\\Program Files (x86)\\chromedriver.exe"
+PATH = os.environ.get('WEBDRIVER_PATH')
 browser = webdriver.Chrome(PATH, chrome_options=options)
 
 content_selector = ".cl:nth-child(3) .c ul li a"
@@ -166,8 +168,7 @@ def get_content():
     content_docs = []
     for content_link in content_links:
         index = content_link['title'].find("(") if content_link['title'].find("(") > 0 else len(content_link['title'])
-        if(len(content_link['title'][:index].encode("utf-8")) > 12 
-            and not content_link['title'].find("/") == -1): continue
+        if(len(content_link['title'][:index].encode("utf-8")) > 12 or content_link['title'].find("/") > -1): continue
         redirect(content_link)
 
         item = get_item(content_link)
@@ -177,24 +178,24 @@ def get_content():
     return content_docs
 
 def crawl(directory, tree, depth):
+    start = time.time()
     if depth > 0:
         if(is_done(directory)): return tree
         redirect(directory)
         directories = browser.find_elements_by_css_selector(".cl:nth-child(2) a")
         directories = get_href(directories)
         for d in directories:
-            index = d['title'].find("(") if d['title'].find("(") > 0 else len(d['title'])
-            if(len(d['title'][:index].encode("utf-8")) > 12
-            and not d['title'].find("/") == -1): continue
-            
-            if(d['title'] == d['title']): continue
-
             child = crawl(d, Tree({'title': d['title'], 'sub': get_content()}), depth-1)
             tree.addChild(child)
         redirect(directory)
         content = get_content()
+        for page in content:
+            if(directory['title'] == page['title']):
+                content = page
         tree.addChild({'title': d['title'], 'sub': content})
+    print('Time elapsed for {}: {}'.format(directory['url'], str(time.time() - start)))
     return tree
+root = get_root_json()[0]
 
-data = crawl(get_root_json()[0], Tree({'title': get_root_json()[0]['title']}), 2)
-save_json(u'{}.json'.format( get_root_json()[0]['title']), dump(data))
+data = crawl(root, Tree({'title': root['title']}), 2)
+save_json(u'{}.json'.format(root['title']), dump(data))

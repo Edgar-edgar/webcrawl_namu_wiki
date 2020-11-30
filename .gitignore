@@ -5,3 +5,4 @@ debug.log
 chromedriver.exe
 *.pyc
 *.rar
+.env
