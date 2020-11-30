@@ -166,16 +166,15 @@ def get_content():
     content_docs = []
     for content_link in content_links:
         index = content_link['title'].find("(") if content_link['title'].find("(") > 0 else len(content_link['title'])
-        if(len(content_link['title'][:index].encode("utf-8")) >= 12 
+        if(len(content_link['title'][:index].encode("utf-8")) > 12 
             and not content_link['title'].find("/") == -1): continue
         redirect(content_link)
+
         item = get_item(content_link)
+        if(item['image'] == None): continue
         content_docs.append(item)
 
     return content_docs
-
-def get_directories():
-    pass
 
 def crawl(directory, tree, depth):
     if depth > 0:
@@ -184,14 +183,18 @@ def crawl(directory, tree, depth):
         directories = browser.find_elements_by_css_selector(".cl:nth-child(2) a")
         directories = get_href(directories)
         for d in directories:
-            redirect(d)
+            index = d['title'].find("(") if d['title'].find("(") > 0 else len(d['title'])
+            if(len(d['title'][:index].encode("utf-8")) > 12
+            and not d['title'].find("/") == -1): continue
+            
+            if(d['title'] == d['title']): continue
+
             child = crawl(d, Tree({'title': d['title'], 'sub': get_content()}), depth-1)
             tree.addChild(child)
         redirect(directory)
         content = get_content()
-        tree.addChild(content)
+        tree.addChild({'title': d['title'], 'sub': content})
     return tree
 
-for i in range(3,30):
-    data = crawl(get_root_json()[i], Tree({'title': get_root_json()[i]['title']}), 2)
-    save_json(u'{}.json'.format( get_root_json()[i]['title']), dump(data))
+data = crawl(get_root_json()[0], Tree({'title': get_root_json()[0]['title']}), 2)
+save_json(u'{}.json'.format( get_root_json()[0]['title']), dump(data))
