@@ -2,3 +2,4 @@ webcrawl_env
 venv
 .vscode
 debug.log
+*.rar
