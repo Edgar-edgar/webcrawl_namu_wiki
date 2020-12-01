@@ -20,8 +20,6 @@ from PyJSONSerialization import dump
 import os
 from dotenv import load_dotenv
 from io import open
-import pygame
-
 load_dotenv()
 
 options = Options()
@@ -50,9 +48,9 @@ def get_root_json():
     with open('json/root.json', 'r', encoding="utf8") as json_file:
         return json.loads(json_file.read())
 
-def random_sleep(a,b):
-    start = random.randrange(a,b)
-    time.sleep(start)
+# def random_sleep(a,b):
+#     start = random.randrange(a,b)
+#     time.sleep(start)
 
 def is_done(directory):
     for h in history:
@@ -221,13 +219,5 @@ def crawl(directory, tree, depth):
 root = get_root_json()[0]
 depth = 2
 
-pygame.mixer.init()
-pygame.mixer.music.load('kimi_no_toriko.mp3')
-
 data = crawl(root, Tree(root['title']), depth)
 save_json(u'{}.json'.format(root['title']), dump(data))
-
-pygame.mixer.music.play()
-
-while pygame.mixer.music.get_busy(): 
-    pygame.time.Clock().tick(10)
