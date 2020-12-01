@@ -20,6 +20,7 @@ from PyJSONSerialization import dump
 import os
 from dotenv import load_dotenv
 from io import open
+import pygame
 
 load_dotenv()
 
@@ -34,12 +35,16 @@ image_selector = ".w span span img:nth-child(2)"
 
 history = []
 class Tree:
-    def __init__(self, node):
-        self.node = node
+    def __init__(self, title):
+        self.title = title
         self.sub = []
 
     def addChild(self, tree):
-        self.sub.append(tree)
+        if(isinstance(tree, Tree) or type(tree) is dict): self.sub.append(tree)
+        else: self.sub += tree
+
+    def setChild(self, sub):
+        self.sub = sub
 
 def get_root_json():
     with open('json/root.json', 'r', encoding="utf8") as json_file:
@@ -58,7 +63,7 @@ def is_done(directory):
 def redirect(directory):
     browser.get(directory['url'])
     history.append(directory)
-    random_sleep(1,5)
+    # random_sleep(1,5)
 
 def save_json(path, data):
     with open(u'json/{}'.format(path), 'w', encoding="utf8") as json_file:
@@ -154,6 +159,17 @@ def get_content_href(urls = None):
 
     return get_content_href(urls)
 
+def get_directory_href():
+    containers = browser.find_elements_by_css_selector('.cl')
+    directory_urls = []
+    for container in containers:
+        header = container.find_element_by_css_selector('.wiki-heading')
+        if(header.text.find(u'하위 분류') == -1): continue
+        directory_urls = container.find_elements_by_css_selector('a')
+        break
+
+    return get_href(directory_urls)
+   
 def get_item(link):
     redirect(link)
     image = get_image(link['url'])
@@ -167,8 +183,9 @@ def get_content():
     content_links = get_content_href([])
     content_docs = []
     for content_link in content_links:
+        if(content_link['title'].find("/") > -1): continue
         index = content_link['title'].find("(") if content_link['title'].find("(") > 0 else len(content_link['title'])
-        if(len(content_link['title'][:index].encode("utf-8")) > 12 or content_link['title'].find("/") > -1): continue
+        if(len(content_link['title'][:index].encode("utf-8")) > 12): continue
         redirect(content_link)
 
         item = get_item(content_link)
@@ -182,20 +199,36 @@ def crawl(directory, tree, depth):
     if depth > 0:
         if(is_done(directory)): return tree
         redirect(directory)
-        directories = browser.find_elements_by_css_selector(".cl:nth-child(2) a")
-        directories = get_href(directories)
+        directories = get_directory_href()
         for d in directories:
-            child = crawl(d, Tree({'title': d['title'], 'sub': get_content()}), depth-1)
+            if(d['title'] == directory['title']): continue
+            content = get_content()
+            content = []
+            t = Tree(d['title'])
+            if len(content) > 0: t.setChild(content)
+            child = crawl(d, t, depth-1)
             tree.addChild(child)
         redirect(directory)
         content = get_content()
         for page in content:
             if(directory['title'] == page['title']):
+                print("page: {}, type: {}".format(page, type(page)))
                 content = page
-        tree.addChild({'title': d['title'], 'sub': content})
+        if len(content) > 0 and len(directories) < 1: tree.setChild(content)
+        elif len(content) > 0: tree.addChild(content)
     print('Time elapsed for {}: {}'.format(directory['url'], str(time.time() - start)))
     return tree
-root = get_root_json()[0]
 
-data = crawl(root, Tree({'title': root['title']}), 2)
+root = get_root_json()[0]
+depth = 2
+
+pygame.mixer.init()
+pygame.mixer.music.load('kimi_no_toriko.mp3')
+
+data = crawl(root, Tree(root['title']), depth)
 save_json(u'{}.json'.format(root['title']), dump(data))
+
+pygame.mixer.music.play()
+
+while pygame.mixer.music.get_busy(): 
+    pygame.time.Clock().tick(10)
