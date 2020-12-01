@@ -109,6 +109,7 @@ def is_face(link):
     return has_face
     
 def get_image(link):
+    message = 'No image'
     try:
         WebDriverWait(browser, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, image_selector)))
         images = browser.find_elements_by_css_selector(image_selector)
@@ -122,11 +123,19 @@ def get_image(link):
                 continue
 
             width, height = im.size
-            if(width > 256 and height > 256 and height > width and is_face(image_src)):
-                return image_src
 
+            if(width < 256 and height < 256 and height < width): 
+                message = 'Invalid image(too small). Crawled with an empty image field.'
+                continue
+            if(is_face(image_src)): 
+                message = image_src
+                break
+
+            else: message = 'Image does not contain any faces.'
+        return message
+            
     except (NoSuchElementException, TimeoutException):
-        return ''
+        return message
 
 def get_href(l):
     nl = []
@@ -187,7 +196,6 @@ def get_content():
         redirect(content_link)
 
         item = get_item(content_link)
-        if(item['image'] == None): continue
         content_docs.append(item)
 
     return content_docs
