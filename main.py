@@ -201,19 +201,18 @@ def crawl(directory, tree, depth):
         redirect(directory)
         directories = get_directory_href()
         for d in directories:
-            if(d['title'] == directory['title']): continue
             content = get_content()
-            content = []
             t = Tree(d['title'])
             if len(content) > 0: t.setChild(content)
             child = crawl(d, t, depth-1)
-            tree.addChild(child)
+            if(len(child.sub) > 0): tree.addChild(child)
         redirect(directory)
         content = get_content()
         for page in content:
             if(directory['title'] == page['title']):
                 print("page: {}, type: {}".format(page, type(page)))
-                content = page
+                tree.setChild(page)
+                return tree
         if len(content) > 0 and len(directories) < 1: tree.setChild(content)
         elif len(content) > 0: tree.addChild(content)
     print('Time elapsed for {}: {}'.format(directory['url'], str(time.time() - start)))
