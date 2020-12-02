@@ -204,6 +204,7 @@ def crawl(directory, tree, depth):
             if len(content) > 0: t.setChild(content)
             child = crawl(d, t, depth-1)
             if(len(child.sub) > 0): tree.addChild(child)
+        
         redirect(directory)
         content = get_content()
         for page in content:
