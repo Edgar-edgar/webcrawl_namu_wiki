@@ -55,9 +55,9 @@ def get_root_json():
     with open('json/root.json', 'r', encoding="utf8") as json_file:
         return json.loads(json_file.read())
 
-# def random_sleep(a,b):
-#     start = random.randrange(a,b)
-#     time.sleep(start)
+def random_sleep(a,b):
+    start = random.randrange(a,b)
+    time.sleep(start)
 
 def is_done(directory):
     for h in history:
@@ -68,7 +68,7 @@ def is_done(directory):
 def redirect(directory):
     browser.get(directory['url'])
     history.append(directory)
-    # random_sleep(1,5)
+    random_sleep(1,4)
 
 def save_json(path, data):
     with open(u'json/{}'.format(path), 'w', encoding="utf8") as json_file:
@@ -217,8 +217,8 @@ def crawl(directory, tree, depth):
     print('Time elapsed for {}: {}'.format(directory['url'], str(time.time() - start)))
     return tree
 
-root = get_root_json()[0]
+root = get_root_json()
 depth = 2
-
-data = crawl(root, Tree(root['title']), depth)
-save_json(u'{}.json'.format(root['title']), dump(data))
+for i in range(1,30):
+    data = crawl(root[i], Tree(root[i]['title']), depth)
+    save_json(u'{}.json'.format(root[i]['title']), dump(data))
