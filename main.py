@@ -31,13 +31,6 @@ content_selector = ".cl:nth-child(3) .c ul li a"
 leaf_next_selector = ".cl:nth-child(3) a:nth-child(2)"
 image_selector = ".w span span img:nth-child(2)"
 
-hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-    'Accept-Encoding': 'none',
-    'Accept-Language': 'en-US,en;q=0.8',
-    'Connection': 'keep-alive'}
-
 history = []
 class Tree:
     def __init__(self, title):
@@ -68,13 +61,19 @@ def is_done(directory):
 def redirect(directory):
     browser.get(directory['url'])
     history.append(directory)
-    random_sleep(1,4)
+    random_sleep(1,3)
 
 def save_json(path, data):
     with open(u'json/{}'.format(path), 'w', encoding="utf8") as json_file:
         json_file.write(unicode(data))
 
 def is_face(link):
+    hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+        'Accept-Encoding': 'none',
+        'Accept-Language': 'en-US,en;q=0.8',
+        'Connection': 'keep-alive'}
     resp = urllib2.Request(link, headers=hdr)
     try:
         page = urllib2.urlopen(resp)
@@ -125,7 +124,7 @@ def get_image(link):
 
             width, height = im.size
 
-            if(width < 256 and height < 256 and height < width): 
+            if(width < 256 and height < 256): 
                 message = 'Invalid image(too small). Crawled with an empty image field.'
                 continue
             if(is_face(image_src)): 
@@ -145,21 +144,19 @@ def get_href(l):
         nl.append({ "title": link.text , "url": link.get_attribute("href").strip() })
     return nl
 
-def get_urls(text):
+
+def get_content_href(urls = None):
+    if urls is None: urls = []
     containers = browser.find_elements_by_css_selector('.cl')
     content_urls = []
     for container in containers:
         header = container.find_element_by_css_selector('.wiki-heading')
-        if(header.text.find(text) == -1): continue
+        if(header.text.find(u'분류에 속하는 문서') == -1): continue
         content_urls = container.find_elements_by_css_selector('a')
         break
 
-    return get_href(content_urls)
-
-def get_content_href(urls = None):
-    if urls is None: urls = []
-
-    urls += get_urls(u'분류에 속하는 문서')
+    content_urls = get_href(content_urls)
+    urls += content_urls
 
     try:
         leaf_next = browser.find_element_by_css_selector(leaf_next_selector)
@@ -169,6 +166,17 @@ def get_content_href(urls = None):
 
     return get_content_href(urls)
 
+def get_directory_href():
+    containers = browser.find_elements_by_css_selector('.cl')
+    directory_urls = []
+    for container in containers:
+        header = container.find_element_by_css_selector('.wiki-heading')
+        if(header.text.find(u'하위 분류') == -1): continue
+        directory_urls = container.find_elements_by_css_selector('a')
+        break
+
+    return get_href(directory_urls)
+   
 def get_item(link):
     redirect(link)
     image = get_image(link['url'])
@@ -197,18 +205,18 @@ def crawl(directory, tree, depth):
     if depth > 0:
         if(is_done(directory)): return tree
         redirect(directory)
-        directories = get_urls(u'하위 분류')
+        directories = get_directory_href()
         for d in directories:
             content = get_content()
             t = Tree(d['title'])
             if len(content) > 0: t.setChild(content)
             child = crawl(d, t, depth-1)
             if(len(child.sub) > 0): tree.addChild(child)
-        
         redirect(directory)
         content = get_content()
         for page in content:
             if(directory['title'] == page['title']):
+                print("page: {}, type: {}".format(page, type(page)))
                 tree.setChild(page)
                 return tree
         if len(content) > 0 and len(directories) < 1: tree.setChild(content)
@@ -219,6 +227,6 @@ def crawl(directory, tree, depth):
 
 root = get_root_json()
 depth = 2
-for i in range(1,30):
+for i in range(0,30):
     data = crawl(root[i], Tree(root[i]['title']), depth)
     save_json(u'{}.json'.format(root[i]['title']), dump(data))
