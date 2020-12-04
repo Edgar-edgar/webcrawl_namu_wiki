@@ -75,33 +75,38 @@ def is_face(link):
         'Accept-Language': 'en-US,en;q=0.8',
         'Connection': 'keep-alive'}
     resp = urllib2.Request(link, headers=hdr)
-    try:
-        page = urllib2.urlopen(resp)
-    except urllib2.HTTPError:
-        print("error")
     
     has_face = False
-    arr = np.asarray(bytearray(page.read()), dtype=np.uint8)
-    image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    image = cv2.imdecode(arr, -1)
     
     try:
-        image = cv2.imread(image)
+        page = urllib2.urlopen(resp)
+        arr = np.asarray(bytearray(page.read()), dtype=np.uint8)
+        image = cv2.imdecode(arr, -1)
+    except urllib2.HTTPError, e:
+        print("error", e)
+    
+    
+    try:
+        image = cv2.imread(image, 0)
     except: pass
 
-    if(image is None): return
+    if(image is None): return False
+
     image = cv2.cvtColor(image, cv2.COLOR_RGBA2BGRA)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     cascades = [
         {"type": "haarcascade_eye.xml", "scale": 2.5, "neighbors": 2, "color":(255,0,0)},
-        {"type": "haarcascade_frontalface_default.xml", "scale": 1.5, "neighbors": 2, "color":(0,244,0) },
+        {"type": "haarcascade_frontalface_default.xml", "scale": 2.5, "neighbors": 2, "color":(0,244,0) },
     ]
-
+    feature = []
     for cascade in cascades:
-        classifier = cv2.CascadeClassifier(cascade["type"])
-        feature = classifier.detectMultiScale(gray, cascade['scale'], cascade['neighbors'])
-        
+        try:
+            classifier = cv2.CascadeClassifier(cascade["type"])
+            feature = classifier.detectMultiScale(gray, cascade['scale'], cascade['neighbors'])
+        except cv2.error:
+            pass
+
         for (x,y,w,h) in feature:
             cv2.rectangle(image, (x,y) , (x+w, y+h), cascade['color'], 4 )
             has_face = True
@@ -119,10 +124,10 @@ def get_image(link):
             response = requests.get(image_src.strip())
             try:
                 im = Image.open(BytesIO(response.content))
+                width, height = im.size
             except IOError:
                 continue
 
-            width, height = im.size
 
             if(width < 256 and height < 256): 
                 message = 'Invalid image(too small). Crawled with an empty image field.'
@@ -225,8 +230,8 @@ def crawl(directory, tree, depth):
     print('Time elapsed for {}: {}'.format(directory['url'], str(time.time() - start)))
     return tree
 
-root = get_root_json()
+root = get_root_json()[13]
 depth = 2
-for i in range(0,30):
-    data = crawl(root[i], Tree(root[i]['title']), depth)
-    save_json(u'{}.json'.format(root[i]['title']), dump(data))
+
+data = crawl(root, Tree(root['title']), depth)
+save_json(u'{}.json'.format(root['title']), dump(data))
