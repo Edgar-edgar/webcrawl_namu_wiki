@@ -230,8 +230,9 @@ def crawl(directory, tree, depth):
     print('Time elapsed for {}: {}'.format(directory['url'], str(time.time() - start)))
     return tree
 
-root = get_root_json()[13]
+root = get_root_json()[15]
 depth = 2
 
+# for i in root:
 data = crawl(root, Tree(root['title']), depth)
 save_json(u'{}.json'.format(root['title']), dump(data))
